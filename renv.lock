@@ -51,6 +51,13 @@
       "Source": "Bioconductor",
       "Hash": "f628c51eadc74ffd838b801cd22d589a"
     },
+    "BiocManager": {
+      "Package": "BiocManager",
+      "Version": "1.30.15",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "87a690190741d0791c9c10b390c933ff"
+    },
     "MASS": {
       "Package": "MASS",
       "Version": "7.3-53",
