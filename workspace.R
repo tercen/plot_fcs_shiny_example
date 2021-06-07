@@ -11,9 +11,10 @@ library(scales)
 ############################################
 #### This part should not be included in ui.R and server.R scripts
 # http://localhost:5402/admin/w/9bc1fd64ee4d8642eb4c61d22c237705/ds/515f20f0-154b-409e-8f2c-28b8ecf96a42
+# http://localhost:5402/admin/w/9e55fb72f96b231f30fa4ef71912b8bc/ds/4cdbb206-a801-4959-86b2-623185ea3656
 getCtx <- function(session) {
-  ctx <- tercenCtx(stepId = "c5515666-086f-44ab-ae2f-f78932c64898",
-                   workflowId = "9bc1fd64ee4d8642eb4c61d22c237705")
+  ctx <- tercenCtx(stepId = "4cdbb206-a801-4959-86b2-623185ea3656",
+                   workflowId = "9e55fb72f96b231f30fa4ef71912b8bc")
   return(ctx)
 }
 ####
@@ -50,13 +51,26 @@ ui <- shinyUI(fluidPage(
   titlePanel("Flow Cytometry Plot"),
   
   sidebarPanel(
+    textInput("title", "Graph title label", ""),
+    textInput("xlab", "X-axis label", ""),
+    textInput("ylab", "Y-axis label", ""),
+    textInput("legend", "Legend title label", ""),
     sliderInput("plotWidth", "Plot width (px)", 200, 2000, 500),
     sliderInput("plotHeight", "Plot height (px)", 200, 2000, 500),
-    textInput("xlab", "x axis label", ""),
-    textInput("ylab", "y axis label", ""),
+    sliderInput("widthBasisX", "Width Basis (X)", -2000, 0, -10),
+    sliderInput("widthBasisY", "Width Basis (Y)", -2000, 0, -10),
+    sliderInput("negX", "Negative range in asymptotic decades (X)", 
+                0, 50, 0, step=0.05),
+    sliderInput("negY", "Negative range in asymptotic decades (Y)",
+                0, 50, 0, step=0.05),
+    sliderInput("posX", "Positive range in asymptotic decades (X)", 
+                0, 50, 4.5, step=0.05),
+    sliderInput("posY", "Positive range in asymptotic decades (Y)",
+                0, 50, 4.5, step=0.05),
     checkboxInput("labs", "Apply labels", 0),
     checkboxInput("wrap", "Wrap panel grid", 0),
-    checkboxInput("fixed", "Axes equal for panels", 0)
+    checkboxInput("fixed", "Axes equal for panels", 0),
+    checkboxInput("space", "Equal FCS space", 0),
   ),
   
   mainPanel(
@@ -82,33 +96,39 @@ server <- shinyServer(function(input, output, session) {
   output$main.plot <- renderPlot({
     df <- dataInput()
     
-    plt = ggplot(df, aes(.x, .y, color=colors, label=labels)) + 
-      scale_y_continuous(trans=biexp2_trans(),
-                         limits=c(0, 10000), breaks=c(0, 1, 10, 100, 1000, 10000),
-                         labels=trans_format("log10", math_format(10^.x))) +
-      scale_x_continuous(trans=biexp2_trans(),
-                         limits=c(0, 10000), breaks=c(0, 1, 10, 100, 1000, 10000),
-                         labels=trans_format("log10", math_format(10^.x))) +
+    df_flow <- as.matrix(df[, c(".x", ".y")])
+    colnames(df_flow) < colnames(df)
+    df_flow <- flowFrame(exprs = df_flow)
+    
+    # FCS plot
+    plt = ggcyto(df_flow, aes(.x, .y)) + 
+      geom_point(alpha=0.0) + # transparent 
+      scale_x_flowjo_biexp(widthBasis=input$widthBasisX, equal.space=input$space, 
+                           neg=input$negX, pos=input$posX, maxValue=1e4) +
+      scale_y_flowjo_biexp(widthBasis=input$widthBasisY, equal.space=input$space, 
+                           neg=input$negY, pos=input$posY, maxValue=1e4) +
+      ggcyto_par_set(limits = "instrument") +
+      facet_null()
       
-      labs(x = input$xlab, y = input$ylab) +
+    
+    # ggplot object
+    plt = as.ggplot(plt)
+    
+    plt = plt + geom_point(data=df, 
+                           mapping=aes(x=.x, y=.y, colour=colors),
+                           shape=1) +
+      # labels
+      labs(x = input$xlab, 
+           y = input$ylab,
+           color= input$legend) +
+      ggtitle(input$title) +
+      
+      
+      # theme stuff
+      theme(legend.position="right",
+            plot.title = element_text(hjust = 0.5)) +
       theme_bw() +
-      theme(legend.position=NULL)
-    
-    if(input$labs & !all(is.na(df$labels))) {
-      plt <- plt + geom_point() + geom_text_repel()
-    }
-    else if(input$labs & !all(is.na(df$sizes))){
-      plt = plt + geom_point(aes(size = sizes))
-    }
-    else{
-      plt = plt + geom_point()
-    }
-    
-    if (!input$wrap){
-      plt <- plt + facet_grid(rnames ~ cnames, scales = ifelse(input$fixed, "fixed", "free"))
-    } else {
-      plt = plt + facet_wrap(~ rnames + cnames, scales = ifelse(input$fixed, "fixed", "free"))
-    }
+      guides(colour = guide_legend(ncol = 1))
     
     plt
   })

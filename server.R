@@ -66,33 +66,39 @@ server <- shinyServer(function(input, output, session) {
   output$main.plot <- renderPlot({
     df <- dataInput()
     
-    plt = ggplot(df, aes(.x, .y, color=colors, label=labels)) + 
-      scale_y_continuous(trans=biexp2_trans(),
-                         limits=c(0, 10000), breaks=c(0, 1, 10, 100, 1000, 10000),
-                         labels=trans_format("log10", math_format(10^.x))) +
-      scale_x_continuous(trans=biexp2_trans(),
-                         limits=c(0, 10000), breaks=c(0, 1, 10, 100, 1000, 10000),
-                         labels=trans_format("log10", math_format(10^.x))) +
+    df_flow <- as.matrix(df[, c(".x", ".y")])
+    colnames(df_flow) < colnames(df)
+    df_flow <- flowFrame(exprs = df_flow)
+    
+    # FCS plot
+    plt = ggcyto(df_flow, aes(.x, .y)) + 
+      geom_point(alpha=0.0) + # transparent 
+      scale_x_flowjo_biexp(widthBasis=input$widthBasisX, equal.space=input$space, 
+                           neg=input$negX, pos=input$posX, maxValue=1e4) +
+      scale_y_flowjo_biexp(widthBasis=input$widthBasisY, equal.space=input$space, 
+                           neg=input$negY, pos=input$posY, maxValue=1e4) +
+      ggcyto_par_set(limits = "instrument") +
+      facet_null()
+    
+    
+    # ggplot object
+    plt = as.ggplot(plt)
+    
+    plt = plt + geom_point(data=df, 
+                           mapping=aes(x=.x, y=.y, colour=colors),
+                           shape=1) +
+      # labels
+      labs(x = input$xlab, 
+           y = input$ylab,
+           color= input$legend) +
+      ggtitle(input$title) +
       
-      labs(x = input$xlab, y = input$ylab) +
+      
+      # theme stuff
+      theme(legend.position="right",
+            plot.title = element_text(hjust = 0.5)) +
       theme_bw() +
-      theme(legend.position=NULL)
-    
-    if(input$labs & !all(is.na(df$labels))) {
-      plt <- plt + geom_point() + geom_text_repel()
-    }
-    else if(input$labs & !all(is.na(df$sizes))){
-      plt = plt + geom_point(aes(size = sizes))
-    }
-    else{
-      plt = plt + geom_point()
-    }
-    
-    if (!input$wrap){
-      plt <- plt + facet_grid(rnames ~ cnames, scales = ifelse(input$fixed, "fixed", "free"))
-    } else {
-      plt = plt + facet_wrap(~ rnames + cnames, scales = ifelse(input$fixed, "fixed", "free"))
-    }
+      guides(colour = guide_legend(ncol = 1))
     
     plt
   })
