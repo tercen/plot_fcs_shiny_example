@@ -67,8 +67,7 @@ server <- shinyServer(function(input, output, session) {
       # theme stuff
       theme(legend.position="right",
             plot.title = element_text(hjust = 0.5)) +
-      theme_bw() +
-      guides(colour = guide_legend(ncol = 1))
+      theme_bw()
     
     plt
   })
