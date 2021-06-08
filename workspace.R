@@ -55,6 +55,10 @@ ui <- shinyUI(fluidPage(
     textInput("xlab", "X-axis label", ""),
     textInput("ylab", "Y-axis label", ""),
     textInput("legend", "Legend title label", ""),
+    textInput("breaks_x", "Breaks for X-Axis", 
+              "0, 1e1, 1e2, 1e3, 1e4"),
+    textInput("breaks_y", "Breaks for Y-Axis", 
+              "0, 1e1, 1e2, 1e3, 1e4"),
     sliderInput("plotWidth", "Plot width (px)", 200, 2000, 500),
     sliderInput("plotHeight", "Plot height (px)", 200, 2000, 500),
     sliderInput("widthBasisX", "Width Basis (X)", -2000, 0, -10),
@@ -95,24 +99,20 @@ server <- shinyServer(function(input, output, session) {
   
   output$main.plot <- renderPlot({
     df <- dataInput()
-    
-    df_flow <- as.matrix(df[, c(".x", ".y")])
-    colnames(df_flow) < colnames(df)
-    df_flow <- flowFrame(exprs = df_flow)
-    
-    # FCS plot
-    plt = ggcyto(df_flow, aes(.x, .y)) + 
-      geom_point(alpha=0.0) + # transparent 
-      scale_x_flowjo_biexp(widthBasis=input$widthBasisX, equal.space=input$space, 
-                           neg=input$negX, pos=input$posX, maxValue=1e4) +
-      scale_y_flowjo_biexp(widthBasis=input$widthBasisY, equal.space=input$space, 
-                           neg=input$negY, pos=input$posY, maxValue=1e4) +
-      ggcyto_par_set(limits = "instrument") +
-      facet_null()
-      
+    breaks_x <- as.numeric(unlist(strsplit(input$breaks_x, ",")))
+    breaks_y <- as.numeric(unlist(strsplit(input$breaks_y, ",")))
     
     # ggplot object
-    plt = as.ggplot(plt)
+    plt = ggplot() +
+      scale_x_flowjo_biexp(widthBasis=input$widthBasisX, equal.space=input$space, 
+                           neg=input$negX, pos=input$posX,
+                           limits=c(min(breaks_x), max(breaks_x)), 
+                           breaks=breaks_x) +
+      scale_y_flowjo_biexp(widthBasis=input$widthBasisY, equal.space=input$space, 
+                           neg=input$negY, pos=input$posY, 
+                           limits=c(min(breaks_y), max(breaks_y)), 
+                           breaks=breaks_y)
+      
     
     plt = plt + geom_point(data=df, 
                            mapping=aes(x=.x, y=.y, colour=colors),
