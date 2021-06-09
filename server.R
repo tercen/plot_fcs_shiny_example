@@ -7,6 +7,7 @@ library(ggcyto)
 library(flowWorkspace)
 library(flowCore)
 library(scales)
+library(ggallin)
 
 ############################################
 #### This part should not be modified
@@ -23,49 +24,85 @@ getCtx <- function(session) {
 ####
 ############################################
 
+custom_log10 = function(breaks) {
+  breaks <-
+    sapply(breaks, function(x)
+      if (x > 0)
+        log10(x)
+      else-log10(abs(x)))
+  math_format(10 ^ .x)(breaks)
+}
+
 server <- shinyServer(function(input, output, session) {
-  
   dataInput <- reactive({
     getValues(session)
   })
   
   output$reacOut <- renderUI({
-    plotOutput(
-      "main.plot",
-      height = input$plotHeight,
-      width = input$plotWidth
-    )
-  }) 
+    plotOutput("main.plot",
+               height = input$plotHeight,
+               width = input$plotWidth)
+  })
   
   output$main.plot <- renderPlot({
     df <- dataInput()
     breaks_x <- as.numeric(unlist(strsplit(input$breaks_x, ",")))
     breaks_y <- as.numeric(unlist(strsplit(input$breaks_y, ",")))
     
+    print(input$scale)
+    
     # ggplot object
-    plt = ggplot() +
-      scale_x_flowjo_biexp(widthBasis=input$widthBasisX, equal.space=input$space, 
-                           neg=input$negX, pos=input$posX,
-                           limits=c(min(breaks_x), max(breaks_x)), 
-                           breaks=breaks_x) +
-      scale_y_flowjo_biexp(widthBasis=input$widthBasisY, equal.space=input$space, 
-                           neg=input$negY, pos=input$posY, 
-                           limits=c(min(breaks_y), max(breaks_y)), 
-                           breaks=breaks_y)
+    plt = ggplot()
+    
+    if (input$scale == "biexponential") {
+      plt = plt +
+        scale_x_flowjo_biexp(
+          widthBasis = input$widthBasisX,
+          equal.space = input$space,
+          neg = input$negX,
+          pos = input$posX,
+          limits = c(min(breaks_x), max(breaks_x)),
+          breaks = breaks_x
+        ) +
+        scale_y_flowjo_biexp(
+          widthBasis = input$widthBasisY,
+          equal.space = input$space,
+          neg = input$negY,
+          pos = input$posY,
+          limits = c(min(breaks_y), max(breaks_y)),
+          breaks = breaks_y
+        )
+    } else if (input$scale == "log10") {
+      plt = plt +
+        scale_x_continuous(
+          limits = c(min(breaks_x), max(breaks_x)),
+          breaks = breaks_x,
+          trans = ggallin::pseudolog10_trans,
+          labels = custom_log10,
+        ) +
+        scale_y_continuous(
+          limits = c(min(breaks_y), max(breaks_y)),
+          breaks = breaks_y,
+          trans = ggallin::pseudolog10_trans,
+          labels = custom_log10,
+        )
+    }
     
     
-    plt = plt + geom_point(data=df, 
-                           mapping=aes(x=.x, y=.y, colour=colors),
-                           shape=1) +
+    plt = plt + geom_point(
+      data = df,
+      mapping = aes(x = .x, y = .y, colour = colors),
+      shape = 1
+    ) +
       # labels
-      labs(x = input$xlab, 
+      labs(x = input$xlab,
            y = input$ylab,
-           color= input$legend) +
+           color = input$legend) +
       ggtitle(input$title) +
       
       
       # theme stuff
-      theme(legend.position="right",
+      theme(legend.position = "right",
             plot.title = element_text(hjust = 0.5)) +
       theme_bw()
     
@@ -74,18 +111,21 @@ server <- shinyServer(function(input, output, session) {
   
 })
 
-getValues <- function(session){
+getValues <- function(session) {
   ctx <- getCtx(session)
   df <- ctx %>% select(.x, .y, .ri, .ci) %>%
     group_by(.ri)
   
   colors <- 0
-  if(length(ctx$colors)) colors <- ctx$select(ctx$colors[[1]])[[1]]
-  if(!all(is.numeric(colors))) colors = as.factor(colors)
+  if (length(ctx$colors))
+    colors <- ctx$select(ctx$colors[[1]])[[1]]
+  if (!all(is.numeric(colors)))
+    colors = as.factor(colors)
   
   tcn.labels <- NA
   sizes = NA
-  if(length(ctx$labels)) tcn.labels <- ctx$select(ctx$labels[[1]])[[1]]
+  if (length(ctx$labels))
+    tcn.labels <- ctx$select(ctx$labels[[1]])[[1]]
   if (!all(is.numeric(tcn.labels))) {
     labels = as.factor(tcn.labels)
   } else {
@@ -97,10 +137,11 @@ getValues <- function(session){
   cnames = ctx$cselect()[[1]]
   
   rnames = ctx$rselect()[[1]]
-  df = df %>% 
+  df = df %>%
     mutate(colors = colors, labels = labels) %>%
-    left_join(data.frame(.ri = 0:(length(rnames)-1), rnames), by = ".ri") %>%
-    left_join(data.frame(.ci = 0:(length(cnames)-1), cnames), by = ".ci")
+    left_join(data.frame(.ri = 0:(length(rnames) - 1), rnames), by = ".ri") %>%
+    left_join(data.frame(.ci = 0:(length(cnames) - 1), cnames), by = ".ci")
   
   return(df)
 }
+
