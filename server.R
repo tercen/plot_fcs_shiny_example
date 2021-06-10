@@ -92,6 +92,7 @@ server <- shinyServer(function(input, output, session) {
     plt = plt + geom_point(
       data = df,
       mapping = aes(x = .x, y = .y, colour = colors),
+      size = input$pointSize,
       shape = 1
     ) +
       # labels
@@ -102,9 +103,16 @@ server <- shinyServer(function(input, output, session) {
       
       
       # theme stuff
-      theme(legend.position = "right",
-            plot.title = element_text(hjust = 0.5)) +
-      theme_bw()
+      theme_classic() +
+      theme(
+        legend.position = "right",
+        plot.title = element_text(hjust = 0.5),
+        panel.border = element_rect(
+          colour = "black",
+          fill = NA,
+          size = 2
+        )
+      )
     
     plt
   })
@@ -144,4 +152,3 @@ getValues <- function(session) {
   
   return(df)
 }
-

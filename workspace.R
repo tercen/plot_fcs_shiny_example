@@ -51,66 +51,71 @@ custom_log10 = function(breaks) {
     sapply(breaks, function(x)
       if (x > 0)
         log10(x)
-      else-log10(abs(x)))
+      else
+        - log10(abs(x)))
   math_format(10 ^ .x)(breaks)
 }
 
-ui <- shinyUI(fluidPage(
-  shinyjs::useShinyjs(),
-  tags$script(
-    HTML(
-      'setInterval(function(){ $("#hiddenButton").click(); }, 1000*30);'
-    )
-  ),
-  tags$footer(shinyjs::hidden(
-    actionButton(inputId = "hiddenButton", label = "hidden")
-  )),
-  
-  titlePanel("Flow Cytometry Plot"),
-  
-  sidebarPanel(
-    textInput("title", "Graph title label", ""),
-    textInput("xlab", "X-axis label", ""),
-    textInput("ylab", "Y-axis label", ""),
-    textInput("legend", "Legend title label", ""),
-    textInput("breaks_x", "Breaks for X-Axis",
-              "0, 1e1, 1e2, 1e3, 1e4"),
-    textInput("breaks_y", "Breaks for Y-Axis",
-              "0, 1e1, 1e2, 1e3, 1e4"),
-    sliderInput("plotWidth", "Plot width (px)", 200, 2000, 500),
-    sliderInput("plotHeight", "Plot height (px)", 200, 2000, 500),
-    sliderInput("widthBasisX", "Width Basis (X)", -2000, 0, -10),
-    sliderInput("widthBasisY", "Width Basis (Y)", -2000, 0, -10),
-    sliderInput("negX", "Negative range in asymptotic decades (X)",
-                0, 50, 0, step = 0.05),
-    sliderInput("negY", "Negative range in asymptotic decades (Y)",
-                0, 50, 0, step = 0.05),
-    sliderInput(
-      "posX",
-      "Positive range in asymptotic decades (X)",
-      0,
-      50,
-      4.5,
-      step = 0.05
+ui <- shinyUI(
+  fluidPage(
+    shinyjs::useShinyjs(),
+    tags$script(
+      HTML(
+        'setInterval(function(){ $("#hiddenButton").click(); }, 1000*30);'
+      )
     ),
-    sliderInput(
-      "posY",
-      "Positive range in asymptotic decades (Y)",
-      0,
-      50,
-      4.5,
-      step = 0.05
+    tags$footer(shinyjs::hidden(
+      actionButton(inputId = "hiddenButton", label = "hidden")
+    )),
+    
+    titlePanel("Flow Cytometry Plot"),
+    
+    sidebarPanel(
+      textInput("title", "Graph title label", ""),
+      textInput("xlab", "X-axis label", ""),
+      textInput("ylab", "Y-axis label", ""),
+      textInput("legend", "Legend title label", ""),
+      textInput("breaks_x", "Breaks for X-Axis",
+                "0, 1e1, 1e2, 1e3, 1e4"),
+      textInput("breaks_y", "Breaks for Y-Axis",
+                "0, 1e1, 1e2, 1e3, 1e4"),
+      sliderInput("pointSize", "Individual point size",
+                  0, 10, 1, step = 1),
+      sliderInput("plotWidth", "Plot width (px)", 200, 2000, 500),
+      sliderInput("plotHeight", "Plot height (px)", 200, 2000, 500),
+      sliderInput("widthBasisX", "Width Basis (X)",-2000, 0,-10),
+      sliderInput("widthBasisY", "Width Basis (Y)",-2000, 0,-10),
+      sliderInput("negX", "Negative range in asymptotic decades (X)",
+                  0, 50, 0, step = 0.05),
+      sliderInput("negY", "Negative range in asymptotic decades (Y)",
+                  0, 50, 0, step = 0.05),
+      sliderInput(
+        "posX",
+        "Positive range in asymptotic decades (X)",
+        0,
+        50,
+        4.5,
+        step = 0.05
+      ),
+      sliderInput(
+        "posY",
+        "Positive range in asymptotic decades (Y)",
+        0,
+        50,
+        4.5,
+        step = 0.05
+      ),
+      selectInput("scale", "Type of scale", choices = c("biexponential", "log10")),
+      checkboxInput("labs", "Apply labels", 0),
+      checkboxInput("wrap", "Wrap panel grid", 0),
+      checkboxInput("fixed", "Axes equal for panels", 0),
+      checkboxInput("space", "Equal FCS space", 0),
     ),
-    selectInput("scale", "Type of scale", choices = c("biexponential", "log10")),
-    checkboxInput("labs", "Apply labels", 0),
-    checkboxInput("wrap", "Wrap panel grid", 0),
-    checkboxInput("fixed", "Axes equal for panels", 0),
-    checkboxInput("space", "Equal FCS space", 0),
-  ),
-  
-  mainPanel(uiOutput("reacOut"), )
-  
-))
+    
+    mainPanel(uiOutput("reacOut"),)
+    
+  )
+)
 
 server <- shinyServer(function(input, output, session) {
   dataInput <- reactive({
@@ -171,6 +176,7 @@ server <- shinyServer(function(input, output, session) {
     plt = plt + geom_point(
       data = df,
       mapping = aes(x = .x, y = .y, colour = colors),
+      size = input$pointSize,
       shape = 1
     ) +
       # labels
@@ -181,9 +187,16 @@ server <- shinyServer(function(input, output, session) {
       
       
       # theme stuff
-      theme(legend.position = "right",
-            plot.title = element_text(hjust = 0.5)) +
-      theme_bw()
+      theme_classic() +
+      theme(
+        legend.position = "right",
+        plot.title = element_text(hjust = 0.5),
+        panel.border = element_rect(
+          colour = "black",
+          fill = NA,
+          size = 2
+        )
+      )
     
     plt
   })
