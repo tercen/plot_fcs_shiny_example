@@ -8,6 +8,7 @@ library(flowWorkspace)
 library(flowCore)
 library(scales)
 library(ggallin)
+library(RColorBrewer)
 
 ############################################
 #### This part should not be modified
@@ -48,6 +49,9 @@ server <- shinyServer(function(input, output, session) {
     df <- dataInput()
     breaks_x <- as.numeric(unlist(strsplit(input$breaks_x, ",")))
     breaks_y <- as.numeric(unlist(strsplit(input$breaks_y, ",")))
+    
+    qual_col_pals = brewer.pal.info
+    col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
     
     print(input$scale)
     
@@ -100,6 +104,7 @@ server <- shinyServer(function(input, output, session) {
            y = input$ylab,
            color = input$legend) +
       ggtitle(input$title) +
+      scale_color_manual(values=col_vector[1:length(df$colors)])
       
       
       # theme stuff
@@ -149,6 +154,8 @@ getValues <- function(session) {
     mutate(colors = colors, labels = labels) %>%
     left_join(data.frame(.ri = 0:(length(rnames) - 1), rnames), by = ".ri") %>%
     left_join(data.frame(.ci = 0:(length(cnames) - 1), cnames), by = ".ci")
+  
+  df$colors <- factor(df$colors, levels = levels(df$colors))
   
   return(df)
 }

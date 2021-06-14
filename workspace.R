@@ -8,6 +8,7 @@ library(flowWorkspace)
 library(flowCore)
 library(scales)
 library(ggallin)
+library(RColorBrewer)
 
 ############################################
 #### This part should not be included in ui.R and server.R scripts
@@ -20,31 +21,6 @@ getCtx <- function(session) {
 }
 ####
 ############################################
-
-biexp2_trans <- function(lim = 100, decade.size = lim) {
-  trans <- function(x) {
-    ifelse(x <= lim,
-           x,
-           lim + decade.size * (suppressWarnings(log(x, 10)) -
-                                  log(lim, 10)))
-  }
-  inv <- function(x) {
-    ifelse(x <= lim,
-           x,
-           10 ^ (((x - lim) / decade.size) + log(lim, 10)))
-  }
-  breaks <- function(x) {
-    if (all(x <= lim)) {
-      pretty_breaks()(x)
-    } else if (all(x > lim)) {
-      log_breaks(10)(x)
-    } else {
-      unique(c(pretty_breaks()(c(x[1], lim)),
-               log_breaks(10)(c(lim, x[2]))))
-    }
-  }
-  trans_new(paste0("biexp-", format(lim)), trans, inv, breaks)
-}
 
 custom_log10 = function(breaks) {
   breaks <-
@@ -144,6 +120,8 @@ server <- shinyServer(function(input, output, session) {
     breaks_y <- as.numeric(unlist(strsplit(input$breaks_y, ",")))
     
     print(input$scale)
+    qual_col_pals = brewer.pal.info
+    col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
     
     # ggplot object
     plt = ggplot()
@@ -182,7 +160,6 @@ server <- shinyServer(function(input, output, session) {
         )
     }
     
-    
     plt = plt + geom_point(
       data = df,
       mapping = aes(x = .x, y = .y, colour = colors),
@@ -194,6 +171,8 @@ server <- shinyServer(function(input, output, session) {
            y = input$ylab,
            color = input$legend) +
       ggtitle(input$title) +
+      scale_color_manual(values=col_vector[1:length(df$colors)])
+      #scale_color_brewer(getPalette = colorRampPalette(brewer.pal(9, "Set1"))(length(input$legend))
       
       
       # theme stuff
@@ -243,6 +222,8 @@ getValues <- function(session) {
     mutate(colors = colors, labels = labels) %>%
     left_join(data.frame(.ri = 0:(length(rnames) - 1), rnames), by = ".ri") %>%
     left_join(data.frame(.ci = 0:(length(cnames) - 1), cnames), by = ".ci")
+  
+  df$colors <- factor(df$colors, levels = levels(df$colors))
   
   return(df)
 }

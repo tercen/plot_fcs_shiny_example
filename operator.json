@@ -1,7 +1,7 @@
 {
-  "name": "Flow Cytometry Shiny Operator",
+  "name": "Flow Cytometry Plot (Shiny)",
   "description": "Flow Cytometry Plot",
   "tags": ["flow cytometry", "plot"],
-  "authors": ["tercen"],
+  "authors": ["tercen", "wptmdoorn"],
   "urls": ["https://github.com/tercen/plot_fcs_shiny_operator"]
 }
