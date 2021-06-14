@@ -171,8 +171,7 @@ server <- shinyServer(function(input, output, session) {
            y = input$ylab,
            color = input$legend) +
       ggtitle(input$title) +
-      scale_color_manual(values=col_vector[1:length(df$colors)])
-      #scale_color_brewer(getPalette = colorRampPalette(brewer.pal(9, "Set1"))(length(input$legend))
+      scale_color_manual(values=col_vector[1:length(df$colors)]) +
       
       
       # theme stuff
