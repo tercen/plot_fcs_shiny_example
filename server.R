@@ -50,7 +50,12 @@ server <- shinyServer(function(input, output, session) {
     breaks_x <- as.numeric(unlist(strsplit(input$breaks_x, ",")))
     breaks_y <- as.numeric(unlist(strsplit(input$breaks_y, ",")))
     
-    qual_col_pals = brewer.pal.info
+    if (length(df$colors) > 74) {
+      qual_col_pals = brewer.pal.info
+    } else {
+      qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+    }
+    
     col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
     
     print(input$scale)
