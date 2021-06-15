@@ -50,7 +50,7 @@ server <- shinyServer(function(input, output, session) {
     breaks_x <- as.numeric(unlist(strsplit(input$breaks_x, ",")))
     breaks_y <- as.numeric(unlist(strsplit(input$breaks_y, ",")))
     
-    if (length(df$colors) > 74) {
+    if (length(levels(df$colors)) > 74) {
       qual_col_pals = brewer.pal.info
     } else {
       qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
@@ -109,7 +109,7 @@ server <- shinyServer(function(input, output, session) {
            y = input$ylab,
            color = input$legend) +
       ggtitle(input$title) +
-      scale_color_manual(values=col_vector[1:length(df$colors)]) +
+      scale_color_manual(values=col_vector[1:length(levels(df$colors))]) +
       
       
       # theme stuff
