@@ -141,15 +141,16 @@ custom_logicle_breaks <- function(x) {
 }
 
 custom_log10 = function(tick) {
-  if ( tick == 0) return("0")
-  else { 
+  if ( tick == 0) {
+    return("0")
+  } else { 
     pow <- log10(abs(tick))
     return(paste0(sign(tick)*10, "^", pow))
   }
 }
 
 custom_tick_labels <- function(breaks) {
-  labelled_ticks <- c(sapply(seq(14, 1, -1), function(x) -10^x), 0, sapply(seq(0, 14, 1), function(x) 10^x))
+  labelled_ticks <- c(sapply(seq(14, 1, -1), function(x) -10^x), 0, sapply(seq(1, 14, 1), function(x) 10^x))
   lbls <- sapply(breaks, custom_log10)
   lbls[! breaks %in% labelled_ticks] = ""
   
