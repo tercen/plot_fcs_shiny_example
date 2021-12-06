@@ -1,74 +1,84 @@
+
+# This is the user-interface definition of a Shiny web application.
+# You can find out more about building applications with Shiny here:
+#
+# http://shiny.rstudio.com
+#
+
 library(shiny)
 library(shinyjs)
 
-ui <- shinyUI(
-  fluidPage(
-    shinyjs::useShinyjs(),
-    tags$script(
-      HTML(
-        'setInterval(function(){ $("#hiddenButton").click(); }, 1000*30);'
-      )
-    ),
-    tags$footer(shinyjs::hidden(
-      actionButton(inputId = "hiddenButton", label = "hidden")
-    )),
-    
-    titlePanel("Flow Cytometry Plot"),
-    
-    sidebarPanel(tabsetPanel(
+ui <- fluidPage(
+  
+  titlePanel("Visualization & Data transformation "),
+  helpText("Use the following options to transform & visualize your Flow Cytometry Data"),
+  sidebarPanel(
+    textInput("title", "Graph title label", "Biaxial plot"),
+    textInput("x_label", "X-axis label", "PE :: 585_29[561]"),
+    textInput("y_label", "Y-axis label", "APC :: 670_30[640]"),
+    textInput("color_legend", "Color legend title label", ""),
+    textInput("shape_legend", "Shape legend title label", ""),
+    sliderInput("point_size", "Individual point size", 0, 10, 5, step = 1),
+    sliderInput("plot_width", "Plot width (px)", 200, 2000, 500),
+    sliderInput("plot_height", "Plot height (px)", 200, 2000, 500)
+  ),
+  mainPanel(
+    tabsetPanel(
+      id = "tabs",
       tabPanel(
-        "Title and Graph",
-        textInput("title", "Graph title label", ""),
-        textInput("xlab", "X-axis label", ""),
-        textInput("ylab", "Y-axis label", ""),
-        textInput("legend", "Legend title label", ""),
-        sliderInput("plotWidth", "Plot width (px)", 200, 2000, 500),
-        sliderInput("plotHeight", "Plot height (px)", 200, 2000, 500),
+        title = "Bi-axial plot",
+        plotOutput(outputId = "biaxial")
       ),
       tabPanel(
-        "Breaks & Points",
-        textInput("breaks_x", "Breaks for X-Axis",
-                  "0, 1e1, 1e2, 1e3, 1e4"),
-        textInput("breaks_y", "Breaks for Y-Axis",
-                  "0, 1e1, 1e2, 1e3, 1e4"),
-        selectInput("scale", "Type of scale", choices = c("biexponential", "log10")),
-        sliderInput("pointSize", "Individual point size",
-                    0, 10, 1, step = 1),
+        title = "x axis transformation",
+        plotOutput(outputId = "distribution_x"),
+        textInput(inputId = "breaks_x", 
+                  label = "x-axis breaks", 
+                  value = "-10, 0, 1e1, 1e2, 1e3, 1e4"),
+        selectInput(inputId = "x_trans_type", 
+                    label = "Transformation:",
+                    choices = c("Linear" = "linear", 
+                                "Logarithmic" = "log10",
+                                "Biexponential" = "biexponential", 
+                                "Logicle" = "logicle"), 
+                    selected = "Linear"),
+        uiOutput("biexponential_width_basis_x"),
+        uiOutput("biexponential_neg_decades_x"),
+        uiOutput("biexponential_pos_decades_x"),
+        uiOutput("logicle_w_x"),
+        uiOutput("logicle_t_x"),
+        uiOutput("logicle_m_x"),
+        uiOutput("logicle_a_x")
       ),
       tabPanel(
-        "Bi-Exp",
-        sliderInput("widthBasisX", "Width Basis (X)", -2000, 0, -10),
-        sliderInput("widthBasisY", "Width Basis (Y)", -2000, 0, -10),
-        sliderInput("negX", "Negative range in asymptotic decades (X)",
-                    0, 50, 0, step = 0.05),
-        sliderInput("negY", "Negative range in asymptotic decades (Y)",
-                    0, 50, 0, step = 0.05),
-        sliderInput(
-          "posX",
-          "Positive range in asymptotic decades (X)",
-          0,
-          50,
-          4.5,
-          step = 0.05
-        ),
-        sliderInput(
-          "posY",
-          "Positive range in asymptotic decades (Y)",
-          0,
-          50,
-          4.5,
-          step = 0.05
-        )
-      ),
-      tabPanel(
-        "Misc",
-        checkboxInput("labs", "Apply labels", 0),
-        checkboxInput("wrap", "Wrap panel grid", 0),
-        checkboxInput("fixed", "Axes equal for panels", 0),
-        checkboxInput("space", "Equal FCS space", 0),
-      )
-    ), width=5),
-    
-    mainPanel(uiOutput("reacOut"), width=7)
+        title = "y axis transformation",
+        plotOutput(outputId = "distribution_y"),
+        textInput(inputId = "breaks_y", 
+                  label = "y-axis breaks", 
+                  value = "-10, 0, 1e1, 1e2, 1e3, 1e4"),
+        selectInput(inputId = "y_trans_type", 
+                    label = "Transformation:",
+                    choices = c("Linear" = "linear", 
+                                "Logarithmic" = "log10",
+                                "Biexponential" = "biexponential", 
+                                "Logicle" = "logicle"), 
+                    selected = "Linear"),
+        uiOutput("biexponential_width_basis_y"),
+        uiOutput("biexponential_neg_decades_y"),
+        uiOutput("biexponential_pos_decades_y"),
+        uiOutput("logicle_w_y"),
+        uiOutput("logicle_t_y"),
+        uiOutput("logicle_m_y"),
+        uiOutput("logicle_a_y")
+      )#,
+      #tabPanel(
+      #  "Misc",
+      #  checkboxInput("labs", "Apply labels", 0),
+      #  checkboxInput("wrap", "Wrap panel grid", 0),
+      #  checkboxInput("fixed", "Axes equal for panels", 0),
+      #  checkboxInput("space", "Equal FCS space", 0),
+      #)
+    )
   )
 )
+
