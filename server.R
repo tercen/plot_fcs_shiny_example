@@ -20,41 +20,37 @@ library(RColorBrewer)
 
 source("helpers.R")
 
-# http://127.0.0.1:5402/admin/w/77d52bb01bd3676e779828d5a50047ae/ds/36600030-7fb6-4e61-a25c-fd421ec60367
-#options("tercen.workflowId" = "abe673836a3f732410737d630179dffd")
-#options("tercen.stepId"= "fe19bf2c-d0f5-4270-b984-c0c1ee09fbff")
-
 server <- shinyServer(function(input, output, session) {
   dataInput <- reactive({
     getValues(session)
   })
   
-  custom_biexp_scale <- reactive({
-    custom_biexp_trans <- flowjo_biexp(pos = input$pos_decades_x, 
-                                       neg = input$neg_decades_x, 
-                                       widthBasis = input$width_basis_x)
-    custom_biexp_inv_trans <- flowjo_biexp(pos = input$pos_decades_x, 
-                                           neg = input$neg_decades_x, 
-                                           widthBasis = input$width_basis_x, 
-                                           inverse = TRUE)
-    
-    scales::trans_new(name = 'custom biexponential',
-                      transform = custom_biexp_trans,
-                      inverse = custom_biexp_inv_trans)
+  custom_biexp_scale_x <- reactive({
+    create_custom_biexp_scale(pos_decades = input$pos_decades_x, 
+                              neg_decades = input$neg_decades_x, 
+                              width_basis = input$width_basis_x)
   })
 
-  custom_logicle_scale <- reactive({
+  custom_biexp_scale_y <- reactive({
+    create_custom_biexp_scale(pos_decades = input$pos_decades_y, 
+                              neg_decades = input$neg_decades_y, 
+                              width_basis = input$width_basis_y)
+  })
+
+  custom_logicle_scale_x <- reactive({
     
-    custom_logicle_trans <- logicleTransform(w = input$logicle_w_x,
-                                             t = input$logicle_t_x,
-                                             m = input$logicle_m_x,
-                                             a = input$logicle_a_x)
+    create_custom_logicle_scale(w = input$logicle_w_x,
+                                t = input$logicle_t_x,
+                                m = input$logicle_m_x,
+                                a = input$logicle_a_x)
+  })
+
+  custom_logicle_scale_y <- reactive({
     
-    custom_logicle_inv_trans <- inverseLogicleTransform(trans = custom_logicle_trans)
-    
-    scales::trans_new(name = 'custom logicle',
-                      transform = custom_logicle_trans,
-                      inverse = custom_logicle_inv_trans)
+    create_custom_logicle_scale(w = input$logicle_w_y,
+                                t = input$logicle_t_y,
+                                m = input$logicle_m_y,
+                                a = input$logicle_a_y)
   })
   
   calculate_x_breaks <- reactive({
@@ -70,16 +66,6 @@ server <- shinyServer(function(input, output, session) {
     break_transform(breaks = breaks_y, 
                     transformation = input$y_trans_type)
   })
-  
-  break_transform <- function(breaks, transformation)
-  {
-    if ((transformation == "biexponential") || (transformation == "logicle")) {
-      x.breaks <- custom_logicle_breaks(breaks)
-    } else {
-      x.breaks <- breaks
-    }
-    return(x.breaks)
-  }
   
   output$biaxial <- renderPlot({
     df <- dataInput()
@@ -100,7 +86,7 @@ server <- shinyServer(function(input, output, session) {
         scale_x_continuous(
           limits = range(x.breaks),
           breaks = x.breaks,
-          trans = custom_biexp_scale(),
+          trans = custom_biexp_scale_x(),
           labels = custom_tick_labels(x.breaks)
         )
       
@@ -110,7 +96,7 @@ server <- shinyServer(function(input, output, session) {
         scale_x_continuous(
           limits = range(x.breaks),
           breaks = x.breaks,
-          trans = custom_logicle_scale(),
+          trans = custom_logicle_scale_x(),
           labels = custom_tick_labels(x.breaks)
         )
       
@@ -140,7 +126,7 @@ server <- shinyServer(function(input, output, session) {
         scale_y_continuous(
           limits = range(y.breaks),
           breaks = y.breaks,
-          trans = custom_biexp_scale(),
+          trans = custom_biexp_scale_y(),
           labels = custom_tick_labels(y.breaks)
         )
       
@@ -150,7 +136,7 @@ server <- shinyServer(function(input, output, session) {
         scale_y_continuous(
           limits = range(y.breaks),
           breaks = y.breaks,
-          trans = custom_logicle_scale(),
+          trans = custom_logicle_scale_y(),
           labels = custom_tick_labels(y.breaks)
         )
       
@@ -200,8 +186,16 @@ server <- shinyServer(function(input, output, session) {
         coord_cartesian(clip = "off") 
     }
     
-    plot(plt)
-  })
+    print(plt)
+  }, 
+  width = 750,
+  height = 500)
+  
+  # output$biaxial <- renderUI({
+  #   plotOutput("bivariate",
+  #              height = "400px",
+  #              width = "400px")
+  # })
   
   output$biexponential_width_basis_x <- renderUI({
     req(input$x_trans_type == "biexponential")
@@ -218,8 +212,8 @@ server <- shinyServer(function(input, output, session) {
                 label = "Extra negative decades",
                 min = 0, 
                 max = 10, 
-                value = 0, 
-                step = 0.01)
+                value = 0.1, 
+                step = 0.1)
   })
   
   output$biexponential_pos_decades_x <- renderUI({
@@ -229,7 +223,7 @@ server <- shinyServer(function(input, output, session) {
                 min = 0,
                 max = 50,
                 value = 4.5,
-                step = 0.01)
+                step = 0.1)
   })
   
   output$logicle_w_x <- renderUI({
@@ -268,15 +262,9 @@ server <- shinyServer(function(input, output, session) {
                 label = "a: extra negative decades", 
                 min = 0,
                 max = 10,
-                value = 0,
-                step = 0.01)
+                value = 0.1,
+                step = 0.1)
   })
-  
-  #output$biaxial <- renderUI({
-  #  plotOutput("theplot",
-  #             height = 500,
-  #             width = 750)
-  #})
   
   output$distribution_x <- renderPlot({
     df <- dataInput()
@@ -290,7 +278,7 @@ server <- shinyServer(function(input, output, session) {
         scale_x_continuous(
           limits = range(x.breaks),
           breaks = x.breaks,
-          trans = custom_biexp_scale(),
+          trans = custom_biexp_scale_x(),
           labels = custom_tick_labels(x.breaks))
       
     } else if (input$x_trans_type == "logicle") {
@@ -299,7 +287,7 @@ server <- shinyServer(function(input, output, session) {
         scale_x_continuous(
           limits = range(x.breaks),
           breaks = x.breaks,
-          trans = custom_logicle_scale(),
+          trans = custom_logicle_scale_x(),
           labels = custom_tick_labels(x.breaks)
         )     
     } else if (input$x_trans_type == "log10") {
@@ -343,8 +331,8 @@ server <- shinyServer(function(input, output, session) {
                 label = "Extra negative decades",
                 min = 0, 
                 max = 10, 
-                value = 0, 
-                step = 0.01)
+                value = 0.1, 
+                step = 0.1)
   })
   
   output$biexponential_pos_decades_y <- renderUI({
@@ -354,7 +342,7 @@ server <- shinyServer(function(input, output, session) {
                 min = 0,
                 max = 50,
                 value = 4.5,
-                step = 0.01)
+                step = 0.5)
   })
   
   output$logicle_w_y <- renderUI({
@@ -393,8 +381,8 @@ server <- shinyServer(function(input, output, session) {
                 label = "a: extra negative decades", 
                 min = 0,
                 max = 10,
-                value = 0,
-                step = 0.01)
+                value = 0.1,
+                step = 0.1)
   })
   
   output$distribution_y <- renderPlot({
@@ -411,7 +399,7 @@ server <- shinyServer(function(input, output, session) {
         scale_x_continuous(
           limits = range(y.breaks),
           breaks = y.breaks,
-          trans = custom_biexp_scale(),
+          trans = custom_biexp_scale_y(),
           labels = custom_tick_labels(y.breaks)
         )
       
@@ -420,7 +408,7 @@ server <- shinyServer(function(input, output, session) {
       hist_y =  hist_y + scale_x_continuous(
         limits = range(y.breaks),
         breaks = y.breaks,
-        trans = custom_logicle_scale(),
+        trans = custom_logicle_scale_y(),
         labels = custom_tick_labels(y.breaks)
       )
       

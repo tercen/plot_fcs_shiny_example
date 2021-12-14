@@ -1,3 +1,4 @@
+
 getCtx = function(session){
   # retreive url query parameters provided by tercen
   query = parseQueryString(session$clientData$url_search)
@@ -73,6 +74,38 @@ create_colors_vector <- function(no_color_factors) {
   return(col_vector)
 }
 
+create_custom_biexp_scale <- function(pos_decades, neg_decades, width_basis) {
+  custom_biexp_trans <- flowjo_biexp(pos = pos_decades,
+                                     neg = neg_decades, 
+                                     widthBasis = width_basis)
+  custom_biexp_inv_trans <- flowjo_biexp(pos = pos_decades, 
+                                         neg = neg_decades, 
+                                         widthBasis = width_basis, 
+                                         inverse = TRUE)
+  
+  custom_biexp_scale <- scales::trans_new(name = 'custom biexponential',
+                                          transform = custom_biexp_trans,
+                                          inverse = custom_biexp_inv_trans)
+  
+  return(custom_biexp_scale)
+}
+
+create_custom_logicle_scale <- function(w, t, m, a) {
+  
+  custom_logicle_trans <- logicleTransform(w = w,
+                                           t = t,
+                                           m = m,
+                                           a = a)
+  
+  custom_logicle_inv_trans <- inverseLogicleTransform(trans = custom_logicle_trans)
+  
+  custom_logicle_scale <- scales::trans_new(name = 'custom logicle',
+                                            transform = custom_logicle_trans,
+                                            inverse = custom_logicle_inv_trans)
+  
+  return(custom_logicle_scale)
+}
+
 custom_logicle_breaks <- function(x) {
   
   rng.raw <- range(x, na.rm = TRUE)
@@ -140,13 +173,25 @@ custom_logicle_breaks <- function(x) {
   return(obj.Tick)
 }
 
+break_transform <- function(breaks, transformation)
+{
+  if ((transformation == "biexponential") || (transformation == "logicle")) {
+    x.breaks <- custom_logicle_breaks(breaks)
+  } else {
+    x.breaks <- breaks
+  }
+  return(x.breaks)
+}
+
 custom_log10 = function(tick) {
   if ( tick == 0) {
-    return("0")
+    tick.lbl = "0"
   } else { 
     pow <- log10(abs(tick))
-    return(paste0(sign(tick)*10, "^", pow))
+    lbl <- paste0(sign(tick)*10, "^", pow)
+    tick.lbl = parse(text = lbl)
   }
+  return(tick.lbl)
 }
 
 custom_tick_labels <- function(breaks) {
