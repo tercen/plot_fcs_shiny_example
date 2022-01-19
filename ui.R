@@ -20,7 +20,7 @@ ui <- shinyUI(
       textInput("color_legend", "Color legend title label", ""),
       textInput("shape_legend", "Shape legend title label", ""),
       sliderInput("point_size", "Individual point size", min = 0, max = 10, value = 5, step = 1),
-      sliderInput("plot_width", "Plot width (px)", min = 200, max = 2000, value = 500),
+      sliderInput("plot_width", "Plot width (px)", min = 200, max = 2000, value = 755),
       sliderInput("plot_height", "Plot height (px)", min = 200, max = 2000, value = 500)
     ),
     mainPanel(

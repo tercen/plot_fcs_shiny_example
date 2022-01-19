@@ -20,7 +20,9 @@ library(RColorBrewer)
 
 source("helpers.R")
 
+
 server <- shinyServer(function(input, output, session) {
+
   dataInput <- reactive({
     getValues(session)
   })
@@ -188,15 +190,15 @@ server <- shinyServer(function(input, output, session) {
     
     print(plt)
   }, 
-  width = 750,
-  height = 500)
+  width = reactive(input$plot_width),
+  height = reactive(input$plot_height))
   
   # output$biaxial <- renderUI({
   #   plotOutput("bivariate",
   #              height = "400px",
   #              width = "400px")
   # })
-  
+
   output$biexponential_width_basis_x <- renderUI({
     req(input$x_trans_type == "biexponential")
     sliderInput(inputId = "width_basis_x", 
