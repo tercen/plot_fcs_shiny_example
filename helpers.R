@@ -195,6 +195,7 @@ custom_log10 = function(tick) {
 }
 
 custom_tick_labels <- function(breaks) {
+  
   labelled_ticks <- c(sapply(seq(14, 1, -1), function(x) -10^x), 0, sapply(seq(1, 14, 1), function(x) 10^x))
   lbls <- sapply(breaks, custom_log10)
   lbls[! breaks %in% labelled_ticks] = ""
@@ -215,3 +216,23 @@ theme_fcs <- function() {
   )
 } 
   
+
+
+is_ten <- function(x){
+  
+  while( x > 10 ){
+    x <- x %/% 10
+  }
+  
+  return((x %% 10)==0)
+}
+
+
+is_five <- function(x){
+  
+  while( x > 10 ){
+    x <- x %/% 10
+  }
+  
+  return((x %% 5)==0)
+}

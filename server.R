@@ -18,19 +18,28 @@ library(scales)
 library(ggallin)
 library(RColorBrewer)
 
+library(grid)
+
 source("helpers.R")
 
 
 server <- shinyServer(function(input, output, session) {
-
   dataInput <- reactive({
     getValues(session)
   })
   
   custom_biexp_scale_x <- reactive({
-    create_custom_biexp_scale(pos_decades = input$pos_decades_x, 
-                              neg_decades = input$neg_decades_x, 
-                              width_basis = input$width_basis_x)
+    
+    if( is.null(input$pos_decades_x)){
+      # Slider not initialized, use default values
+      create_custom_biexp_scale(pos_decades = 4.5, 
+                                neg_decades = -1, 
+                                width_basis = -13)
+    }else{
+      create_custom_biexp_scale(pos_decades = input$pos_decades_x, 
+                                neg_decades = input$neg_decades_x, 
+                                width_basis = input$width_basis_x)
+    }
   })
 
   custom_biexp_scale_y <- reactive({
@@ -68,6 +77,8 @@ server <- shinyServer(function(input, output, session) {
     break_transform(breaks = breaks_y, 
                     transformation = input$y_trans_type)
   })
+
+  
   
   output$biaxial <- renderPlot({
     df <- dataInput()
@@ -83,8 +94,7 @@ server <- shinyServer(function(input, output, session) {
     plt = ggplot()
     
     if (input$x_trans_type == "biexponential") {
-      
-      plt = plt + 
+      plt = plt +
         scale_x_continuous(
           limits = range(x.breaks),
           breaks = x.breaks,
@@ -94,7 +104,7 @@ server <- shinyServer(function(input, output, session) {
       
     } else if (input$x_trans_type == "logicle") {
       
-      plt = plt + 
+      plt = plt +
         scale_x_continuous(
           limits = range(x.breaks),
           breaks = x.breaks,
@@ -104,7 +114,7 @@ server <- shinyServer(function(input, output, session) {
       
     } else if (input$x_trans_type == "log10") {
       
-      plt =  plt + 
+      plt =  plt +
         scale_x_continuous(
           limits = range(x.breaks),
           breaks = x.breaks,
@@ -124,7 +134,7 @@ server <- shinyServer(function(input, output, session) {
     
     if (input$y_trans_type == "biexponential") {
       
-      plt = plt + 
+      plt = plt +
         scale_y_continuous(
           limits = range(y.breaks),
           breaks = y.breaks,
@@ -134,7 +144,7 @@ server <- shinyServer(function(input, output, session) {
       
     } else if (input$y_trans_type == "logicle") {
       
-      plt = plt + 
+      plt = plt +
         scale_y_continuous(
           limits = range(y.breaks),
           breaks = y.breaks,
@@ -176,29 +186,68 @@ server <- shinyServer(function(input, output, session) {
       scale_color_manual(values=col_vector[1:length(levels(df$factor_colors))]) +
       
       # theme stuff
-      theme_classic() + theme_fcs()
+      theme_classic() + theme_fcs() +
+      theme( text = element_text(size=20) )
     
     if (logticks_flag != "")
     {
-      plt = plt + annotation_logticks(sides = logticks_flag, 
-                                      outside = TRUE) + #, 
+      plt = plt + annotation_logticks(sides = logticks_flag,
+                                      outside = TRUE) + #,
         #short = unit(.05, "cm"),
         #mid = unit(0.1, "cm"),
         #long = unit(0.15, "cm")) +
-        coord_cartesian(clip = "off") 
+        coord_cartesian(clip = "off")
     }
     
-    print(plt)
-  }, 
-  width = reactive(input$plot_width),
-  height = reactive(input$plot_height))
-  
-  # output$biaxial <- renderUI({
-  #   plotOutput("bivariate",
-  #              height = "400px",
-  #              width = "400px")
-  # })
+    # Set tick sizes for the biexponential transform
+    if (input$x_trans_type == "biexponential"){
+      bld     <- ggplot_build(plt)
+      tickPos <- bld$layout$panel_params[[1]]$x$break_positions()
+      
+      longBr  <- list()
+      medBr   <- list()
+      shortBr <- list()
+      
+      for (i in seq_along(x.breaks)) {
+        if(is_ten(x.breaks[i])  ){
+          longBr <- append(longBr, tickPos[i])
+        }else if(is_five(x.breaks[i]) ){
+          medBr <- append(medBr, tickPos[i])
+        }else{
+          shortBr <- append(shortBr, tickPos[i])
+        }
+      }
+      
+      for(i in seq_along(longBr)){
+        plt <- plt +
+          annotation_custom(linesGrob(x = unit(c(longBr[i], longBr[i]), 'native'),y = unit(c(0,-0.3), 'cm'),
+                                      gp=gpar(col='black', fill=NA, lwd=1.5) ) )
+      }
+      
+      for(i in seq_along(medBr)){
+        plt <- plt +
+          annotation_custom(linesGrob(x = unit(c(medBr[i], medBr[i]), 'native'),y = unit(c(0,-0.2), 'cm'),
+                                      gp=gpar(col='black',fill=NA, lwd=1) ) )
+      }
+      
+      for(i in seq_along(shortBr)){
+        plt <- plt +
+          annotation_custom(linesGrob(x = unit(c(shortBr[i], shortBr[i]), 'native'),y = unit(c(0,-0.1), 'cm'),
+                                      gp=gpar(col='black',fill=NA, lwd=1) ) )
+      }
+      
+      # Remove original ticks
+      plt <- plt + theme(axis.ticks.x=element_blank())
+      
+      plt <- plt +  coord_cartesian(clip = "off")
+    }
+    
 
+    print(plt)
+  },
+  width = reactive(input$plot_width    ),
+  height = reactive(input$plot_height  )
+  )
   output$biexponential_width_basis_x <- renderUI({
     req(input$x_trans_type == "biexponential")
     sliderInput(inputId = "width_basis_x", 
@@ -283,6 +332,7 @@ server <- shinyServer(function(input, output, session) {
           trans = custom_biexp_scale_x(),
           labels = custom_tick_labels(x.breaks))
       
+
     } else if (input$x_trans_type == "logicle") {
 
       hist_x = hist_x +
