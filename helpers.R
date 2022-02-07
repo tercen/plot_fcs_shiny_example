@@ -236,3 +236,48 @@ is_five <- function(x){
   
   return((x %% 5)==0)
 }
+
+
+
+set_biexp_ticks <- function(plt, breaks){
+  bld     <- ggplot_build(plt)
+  tickPos <- bld$layout$panel_params[[1]]$x$break_positions()
+  
+  longBr  <- list()
+  medBr   <- list()
+  shortBr <- list()
+  
+  for (i in seq_along(breaks)) {
+    if(is_ten(breaks[i])  ){
+      longBr <- append(longBr, tickPos[i])
+    }else if(is_five(breaks[i]) ){
+      medBr <- append(medBr, tickPos[i])
+    }else{
+      shortBr <- append(shortBr, tickPos[i])
+    }
+  }
+  
+  for(i in seq_along(longBr)){
+    plt <- plt +
+      annotation_custom(linesGrob(x = unit(c(longBr[i], longBr[i]), 'native'),y = unit(c(0,-0.3), 'cm'),
+                                  gp=gpar(col='black', fill=NA, lwd=1.5) ) )
+  }
+  
+  for(i in seq_along(medBr)){
+    plt <- plt +
+      annotation_custom(linesGrob(x = unit(c(medBr[i], medBr[i]), 'native'),y = unit(c(0,-0.2), 'cm'),
+                                  gp=gpar(col='black',fill=NA, lwd=1) ) )
+  }
+  
+  for(i in seq_along(shortBr)){
+    plt <- plt +
+      annotation_custom(linesGrob(x = unit(c(shortBr[i], shortBr[i]), 'native'),y = unit(c(0,-0.1), 'cm'),
+                                  gp=gpar(col='black',fill=NA, lwd=1) ) )
+  }
+  
+  # Remove original ticks
+  plt <- plt + theme(axis.ticks.x=element_blank())
+  
+  plt <- plt +  coord_cartesian(clip = "off")
+  return(plt)
+}

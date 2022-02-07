@@ -21,7 +21,9 @@ library(RColorBrewer)
 library(grid)
 
 source("helpers.R")
-
+#http://127.0.0.1:5402/admin/w/e7881313f6bd44613443e6730500079f/ds/4effbff3-b442-4ab1-b460-3876b3fac589
+# options('tercen.workflowId'='e7881313f6bd44613443e6730500079f')
+# options('tercen.stepId'='4effbff3-b442-4ab1-b460-3876b3fac589')
 
 server <- shinyServer(function(input, output, session) {
   dataInput <- reactive({
@@ -43,9 +45,15 @@ server <- shinyServer(function(input, output, session) {
   })
 
   custom_biexp_scale_y <- reactive({
-    create_custom_biexp_scale(pos_decades = input$pos_decades_y, 
-                              neg_decades = input$neg_decades_y, 
-                              width_basis = input$width_basis_y)
+    if( is.null(input$pos_decades_y)){
+      create_custom_biexp_scale(pos_decades = 4.5, 
+                                neg_decades = -1, 
+                                width_basis = -13)
+    }else{
+      create_custom_biexp_scale(pos_decades = input$pos_decades_y, 
+                                neg_decades = input$neg_decades_y, 
+                                width_basis = input$width_basis_y)
+    }
   })
 
   custom_logicle_scale_x <- reactive({
@@ -201,53 +209,16 @@ server <- shinyServer(function(input, output, session) {
     
     # Set tick sizes for the biexponential transform
     if (input$x_trans_type == "biexponential"){
-      bld     <- ggplot_build(plt)
-      tickPos <- bld$layout$panel_params[[1]]$x$break_positions()
-      
-      longBr  <- list()
-      medBr   <- list()
-      shortBr <- list()
-      
-      for (i in seq_along(x.breaks)) {
-        if(is_ten(x.breaks[i])  ){
-          longBr <- append(longBr, tickPos[i])
-        }else if(is_five(x.breaks[i]) ){
-          medBr <- append(medBr, tickPos[i])
-        }else{
-          shortBr <- append(shortBr, tickPos[i])
-        }
-      }
-      
-      for(i in seq_along(longBr)){
-        plt <- plt +
-          annotation_custom(linesGrob(x = unit(c(longBr[i], longBr[i]), 'native'),y = unit(c(0,-0.3), 'cm'),
-                                      gp=gpar(col='black', fill=NA, lwd=1.5) ) )
-      }
-      
-      for(i in seq_along(medBr)){
-        plt <- plt +
-          annotation_custom(linesGrob(x = unit(c(medBr[i], medBr[i]), 'native'),y = unit(c(0,-0.2), 'cm'),
-                                      gp=gpar(col='black',fill=NA, lwd=1) ) )
-      }
-      
-      for(i in seq_along(shortBr)){
-        plt <- plt +
-          annotation_custom(linesGrob(x = unit(c(shortBr[i], shortBr[i]), 'native'),y = unit(c(0,-0.1), 'cm'),
-                                      gp=gpar(col='black',fill=NA, lwd=1) ) )
-      }
-      
-      # Remove original ticks
-      plt <- plt + theme(axis.ticks.x=element_blank())
-      
-      plt <- plt +  coord_cartesian(clip = "off")
+      plt <- set_biexp_ticks(plt, x.breaks)
     }
     
 
     print(plt)
   },
-  width = reactive(input$plot_width    ),
-  height = reactive(input$plot_height  )
+  width = reactive(input$plot_width ),
+  height = reactive(input$plot_height  ), res=72
   )
+  
   output$biexponential_width_basis_x <- renderUI({
     req(input$x_trans_type == "biexponential")
     sliderInput(inputId = "width_basis_x", 
@@ -364,6 +335,10 @@ server <- shinyServer(function(input, output, session) {
       # theme stuff
       theme_classic() + 
       theme_fcs()
+    
+    if (input$x_trans_type == "biexponential") {
+      plt <- set_biexp_ticks(plt, x.breaks)
+    }
     
     plot(plt)
   })
@@ -483,6 +458,10 @@ server <- shinyServer(function(input, output, session) {
       # theme stuff
       theme_classic() +
       theme_fcs()
+    
+    if (input$y_trans_type == "biexponential") {
+      plt <- set_biexp_ticks(plt, y.breaks)
+    }
     
     plot(plt)
   })
